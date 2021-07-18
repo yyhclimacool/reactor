@@ -8,6 +8,9 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <iostream>
 
 static void InitLogging(const char *procname) {
@@ -19,6 +22,7 @@ static void InitLogging(const char *procname) {
 
 int main(int argc, char **argv) {
   (void) argc;
+
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
 
@@ -51,6 +55,7 @@ int main(int argc, char **argv) {
   } else {
     LOG(INFO) << "listening on localhost:8000";
   }
+
   struct pollfd pfd;
   pfd.fd = listenfd;
   pfd.events = POLLIN;
@@ -61,11 +66,22 @@ int main(int argc, char **argv) {
   socklen_t peerlen;
   int connfd;
 
+  int idlefd = open("/dev/null", O_RDONLY | O_CLOEXEC);
+
   while(1) {
     nready = poll(pollfds.data(), pollfds.size(), 10 * 1000 /* ms */);
     if (nready == -1) {
-      LOG(FATAL) << "poll failed.";
-      return -1;
+      if (errno == EMFILE) {
+        LOG(WARNING) << "out of fds in this process. close connection.";
+        close(idlefd);
+        idlefd = accept(listenfd, NULL, NULL);
+        close(idlefd);
+        idlefd = open("/dev/null", O_RDONLY | O_CLOEXEC);
+        continue;
+      } else {
+        LOG(FATAL) << "poll failed.";
+        return -1;
+      }
     }
     if (nready == 0) {
       LOG(INFO) << "poll nothing happened, continue to poll ...";
