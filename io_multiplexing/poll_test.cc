@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     LOG(FATAL) << "call listen for listenfd failed.";
     return -1;
   } else {
-    LOG(INFO) << "listend localhost:8000";
+    LOG(INFO) << "listening on localhost:8000";
   }
   struct pollfd pfd;
   pfd.fd = listenfd;
@@ -62,12 +62,14 @@ int main(int argc, char **argv) {
   int connfd;
 
   while(1) {
-    nready = poll(pollfds.data(), pollfds.size(), -1);
+    nready = poll(pollfds.data(), pollfds.size(), 10 * 1000 /* ms */);
     if (nready == -1) {
       LOG(FATAL) << "poll failed.";
       return -1;
     }
-    if (nready == 0) continue;
+    if (nready == 0) {
+      LOG(INFO) << "poll nothing happened, continue to poll ...";
+    }
 
     // new connection incomming
     if (pollfds[0].revents & POLLIN) {
