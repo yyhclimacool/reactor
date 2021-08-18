@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   int idlefd = open("/dev/null", O_RDONLY | O_CLOEXEC);
 
   while(1) {
-    // events是输出参数
+    // events是输入输出参数
     nready = epoll_wait(epollfd, events.data(), static_cast<int>(events.size()), 10 * 1000 /* ms */);
     if (nready == -1) {
       if (errno == EINTR) {
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
         char buf[1024] = {0};
         int ret = read(connfd, buf, 1024);
         if (ret == -1) {
-          LOG(FATAL) << "read fromfd[" << connfd << "] failed.";
+          LOG(FATAL) << "read from fd[" << connfd << "] failed.";
           continue;
         }
         if (ret == 0) {

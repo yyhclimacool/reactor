@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
           close(connfd);
           continue;
         }
-        LOG(INFO) << "fromfd[" << connfd << "], message[" << buf << "].";
+        LOG(INFO) << "from fd[" << connfd << "], message[" << buf << "].";
         write(connfd, buf, strlen(buf));
       }
     }
