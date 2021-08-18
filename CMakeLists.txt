@@ -35,6 +35,8 @@ list(APPEND LINK_LIBS
   unwind
 )
 
+add_subdirectory(muduo)
+
 ##list(APPEND LINK_LIBS )
 #
 #foreach(lib IN LISTS LIBS)
