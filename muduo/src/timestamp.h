@@ -2,6 +2,7 @@
 
 #include <boost/operators.hpp>
 
+#include <assert.h>
 #include <string>
 
 class Timestamp : public boost::equality_comparable<Timestamp>,
@@ -41,7 +42,7 @@ public:
     }
 private:
     static const uint64_t kMicroSecondsPerSecond = 1000 * 1000;
-    _ms_since_epoch = 0;
+    uint64_t _ms_since_epoch = 0;
 };
 
 inline bool operator<(Timestamp lhs, Timestamp rhs) {
