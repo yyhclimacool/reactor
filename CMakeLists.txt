@@ -63,3 +63,4 @@ link_libraries(libglog.a  libgflags.a pthread unwind)
 add_subdirectory(io_multiplexing)
 
 install(FILES README.md DESTINATION doc COMPONENT document RENAME "README.md")
+install(TARGETS muduo DESTINATION lib)
