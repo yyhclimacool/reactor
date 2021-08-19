@@ -1,4 +1,5 @@
 #include "epoll_poller.h"
+#include <glog/logging.h>
 
 std::static_assert(EPOLLIN == POLLIN, "EPOLLIN equals to POLLIN");
 std::static_assert(EPOLLPRI == POLLPRI, "EPOLLPRI equals to POLLPRI");
@@ -28,7 +29,7 @@ EPollPoller::~EPollPoller() {
 }
 
 Timestamp EPollPoller::Poll(int timeout_ms, std::vector<Channel *> *active_channels) {
-    LOG(INFO) << "total fd num=" << _channels.size() << " in epoll";
+    LOG(INFO) << "total fd num=" << _channels.size() << " in epoll[" << this << "]";
     int num_events = epoll_wait(_epollfd,
                                 _events.data(),
                                 static_cast<int>(_events.size()),
@@ -36,18 +37,18 @@ Timestamp EPollPoller::Poll(int timeout_ms, std::vector<Channel *> *active_chann
     int saved_errno = errno;
     auto now = Timestamp::Now();
     if (num_events > 0) {
-        LOG(INFO) << "num_events=" << num_events << " happend in epoll";
+        LOG(INFO) << "num_events=" << num_events << " happend in epoll[" << this << "]";
         FillActiveChannels(num_events, active_channels);
         if (static_cast<size_t>(num_events) == _events.size()) {
             _events.resize(_events.size() * 2);
         }
     } else if (num_events == 0) {
-        LOG(INFO) << "nothing happend in epoll";
+        LOG(INFO) << "nothing happend in epoll[" << this << "]";
     } else {
         // error happened
         if (saved_errno != EINTR) {
             errno = saved_errno;
-            LOG(WARNING) << "caused an error_no=" << saved_errno << " in epoll";
+            LOG(WARNING) << "caused an error_no=" << saved_errno << " in epoll[" << this <<"]";
         }
     }
 
@@ -66,5 +67,35 @@ void EPollPoller::FillActiveChannels(int num_events, std::vector<Channel *> *act
 #endif
         ch->SetREvents(_events[i].events);
         active_channels->push_back(ch);
+    }
+}
+
+void EPollPoller::UpdataChannel(Channel *ch) {
+    AssertInLoopThread();
+    const int index = ch->index();
+    LOG(INFO) << "fd=" << ch->fd() << ", events=" << ch->events() << ", index=" << ch->index();
+    if (index == kNew || index == kDeleted) {
+        int fd = ch->fd();
+        if (index == kNew) {
+            assert(_channels.find(fd) == _channels.end());
+            _channels[fd] = ch;
+        } else {
+            assert(_channels.find(fd) != _channels.end());
+            assert(_channels[fd] == ch);
+        }
+        ch->set_index(kAdded);
+        Update(EPOLL_CTL_ADD, ch);
+    } else {
+        int fd = ch->fd();
+        (void) fd;
+        assert(_channels.find(fd) != _channels.end());
+        assert(_channels[fd] == ch);
+        assert(index == kAdded);
+        if (ch->isNoneEvent()) {
+            ch->set_index(kDeleted);
+            Update(EPOLL_CTL_DEL, ch);
+        } else {
+            Update(EPOLL_CTL_MOD, ch);
+        }
     }
 }
