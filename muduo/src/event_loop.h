@@ -6,6 +6,10 @@
 #include <memory>
 #include <vector>
 
+
+class Channel;
+class Poller;
+
 class EventLoop {
 public:
     EventLoop();

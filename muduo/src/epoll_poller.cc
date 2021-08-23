@@ -1,12 +1,16 @@
 #include "epoll_poller.h"
-#include <glog/logging.h>
+#include "channel.h"
 
-std::static_assert(EPOLLIN == POLLIN, "EPOLLIN equals to POLLIN");
-std::static_assert(EPOLLPRI == POLLPRI, "EPOLLPRI equals to POLLPRI");
-std::static_assert(EPOLLOUT == POLLOUT, "EPOLLOUT equals to POLLOUT");
-std::static_assert(EPOLLRDHUP == POLLRDHUP, "EPOLLRDHUP equals to POLLRDHUP");
-std::static_assert(EPOLLERR == POLLERR, "EPOLLERR equals to POLLERR");
-std::static_assert(EPOLLHUP == POLLHUP, "EPOLLHUP equals to POLLHUP");
+#include <glog/logging.h>
+#include <sys/epoll.h>
+#include <sys/poll.h>
+
+static_assert(EPOLLIN == POLLIN, "EPOLLIN equals to POLLIN");
+static_assert(EPOLLPRI == POLLPRI, "EPOLLPRI equals to POLLPRI");
+static_assert(EPOLLOUT == POLLOUT, "EPOLLOUT equals to POLLOUT");
+static_assert(EPOLLRDHUP == POLLRDHUP, "EPOLLRDHUP equals to POLLRDHUP");
+static_assert(EPOLLERR == POLLERR, "EPOLLERR equals to POLLERR");
+static_assert(EPOLLHUP == POLLHUP, "EPOLLHUP equals to POLLHUP");
 
 namespace {
     const int kNew = -1;
@@ -55,7 +59,7 @@ Timestamp EPollPoller::Poll(int timeout_ms, std::vector<Channel *> *active_chann
     return now;
 }
 
-void EPollPoller::FillActiveChannels(int num_events, std::vector<Channel *> *active_channels) {
+void EPollPoller::FillActiveChannels(int num_events, std::vector<Channel *> *active_channels) const {
     assert(static_cast<size_t>(num_events) <= _events.size());
     for (int i = 0; i < num_events; ++i) {
         Channel *ch = static_cast<Channel *>(_events[i].data.ptr);
@@ -98,4 +102,8 @@ void EPollPoller::UpdataChannel(Channel *ch) {
             Update(EPOLL_CTL_MOD, ch);
         }
     }
+}
+
+Poller *Poller::NewDefaultPoller(EventLoop *loop) {
+    return new EPollPoller(loop);
 }
