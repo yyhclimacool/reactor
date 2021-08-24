@@ -35,7 +35,7 @@ public:
     }
 
     // TODO: check this
-    void tie(const std::shared_ptr<void> &);
+    void Tie(const std::shared_ptr<void> &);
 
     int Fd() const { return _fd; }
     int Events() const { return _events; }

@@ -29,3 +29,41 @@ void Channel::HandleEvent(Timestamp receive_time) {
         HandleEventWithGuard(receive_time);
     }
 }
+
+void Channel::Tie(const std::shared_ptr<void> &obj) {
+    _tie = obj;
+    _tied = true;
+}
+
+std::string Channel::ReventsToString() const {
+    return EventsToString(_fd, _revents);
+}
+
+std::string Channel::EventsToString() const {
+    return EventsToString(_fd, _events);
+}
+
+std::string Channel::EventsToString(int fd, int ev) {
+    std::ostringstream oss;
+    oss << "fd=" << _fd << ":";
+    if (ev & POLLIN)    oss << "IN ";
+    if (ev & POLLPRI)   oss << "PRI ";
+    if (ev & POLLOUT)   oss << "OUT ";
+    if (ev & POLLHUP)   oss << "HUP ";
+    if (ev & POLLRDHUP) oss << "RDHUP ";
+    if (ev & POLLERR)   oss << "ERR ";
+    if (ev & POLLNVAL)  oss << "NVAL ";
+
+    return oss.str();
+}
+
+void Channnel::Remove() {
+    assert(IsNoneEvent());
+    _added_to_loop = false;
+    _loop->RemoveChannel(this);
+}
+
+void Channnel::Update() {
+    _added_to_loop = true;
+    _loop->UpdateChannel(this);
+}

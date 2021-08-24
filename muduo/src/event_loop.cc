@@ -6,7 +6,7 @@
 thread_local EventLoop *t_LoopInThisThread = nullptr;
 
 EventLoop::EventLoop() 
-    : _poller(Poller::newDefaultPoller(this)),
+    : _poller(Poller::NewDefaultPoller(this)),
       _threadid(tid()),
       _iteration(0),
       _looping(false) {
