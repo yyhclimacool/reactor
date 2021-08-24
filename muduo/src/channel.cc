@@ -67,3 +67,32 @@ void Channnel::Update() {
     _added_to_loop = true;
     _loop->UpdateChannel(this);
 }
+
+void Channel::HandleEventWithGuard(Timestamp receive_time) {
+    _event_handling = true;
+    LOG(INFO) << ReventsToString();
+    if ((_revents & POLLHUP) && !(_revents & POLLIN)) {
+        if (_log_hup) {
+            LOG(WARNING) << "fd=" << _fd << " Channel::HandleEvent() POLLHUP";
+        }
+        if (_close_callback) _close_callback();
+    }
+
+    if (_revents & POLLNVAL) {
+        LOG(WARNING) << "fd=" << _fd << " Channel::HandleEvent() POLLNVAL";
+    }
+
+    if (_revents & (POLLERR | POLLNVAL)) {
+        if (_error_callback) _error_callback();
+    }
+
+    if (_revents & (POLLIN | POLLPRI | POLLRDHUP)) {
+        if (_read_callback) _read_callback(reveive_time);
+    }
+
+    if (_revents & POLLOUT) {
+        if(_write_callback) _write_callback();
+    }
+
+    _event_handling = false;
+}

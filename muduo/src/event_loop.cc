@@ -1,3 +1,4 @@
+#include "current_thread.h"
 #include "event_loop.h"
 #include "poller.h"
 
