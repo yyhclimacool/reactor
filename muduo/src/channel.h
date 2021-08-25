@@ -19,7 +19,7 @@ public:
     Channel(EventLoop *loop, int fd);
     ~Channel();
 
-    viod HandleEvent(Timestamp receive_time);
+    void HandleEvent(Timestamp receive_time);
 
     void SetReadCallback(ReadEventCallback rcb) {
         _read_callback = std::move(rcb);

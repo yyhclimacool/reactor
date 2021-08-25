@@ -1,4 +1,5 @@
 #include "channel.h"
+#include "event_loop.h"
 
 Channel::Channel(EventLoop *loop, int fd)
     : _loop(loop),
@@ -7,7 +8,6 @@ Channel::Channel(EventLoop *loop, int fd)
       _revents(0),
       _index(-1),
       _log_hup(false),
-      _tie(nullptr),
       _tied(false),
       _event_handling(false),
       _added_to_loop(false) {}

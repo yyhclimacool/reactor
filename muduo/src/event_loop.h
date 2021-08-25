@@ -17,11 +17,11 @@ public:
     EventLoop &operator=(const EventLoop &) = delete;
     ~EventLoop();
 
-    void loop();
+    void Loop();
 
 private:
-    bool isInLoopThread() const;
-    void assertInLoopThread() const;
+    bool IsInLoopThread() const;
+    void AssertInLoopThread() const;
     std::unique_ptr<Poller> _poller;
     const pid_t _threadid;
     int64_t _iteration;

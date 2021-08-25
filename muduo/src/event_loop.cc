@@ -24,11 +24,11 @@ EventLoop::~EventLoop() {
     t_LoopInThisThread = nullptr;
 }
 
-bool EventLoop::isInLoopThread() const {
+bool EventLoop::IsInLoopThread() const {
     return _threadid == tid();
 }
 
-void EventLoop::loop() {
+void EventLoop::Loop() {
     assert(!_looping);
     assertInLoopThread();
 }

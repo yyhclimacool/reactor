@@ -1,5 +1,9 @@
 #include "current_thread.h"
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <stdio.h>
+
 __thread int t_cached_tid = 0;
 __thread int t_tid_string_length = 6;
 __thread char t_tid_string[32]{0};
