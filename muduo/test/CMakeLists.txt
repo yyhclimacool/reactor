@@ -4,7 +4,7 @@ foreach(file IN LISTS test_srcs)
     string(REPLACE ".cc" "" target_name_temp ${file})
     string(REPLACE "./" "" target_name ${target_name_temp})
     add_executable(${target_name} ${file})
-    target_link_libraries(${target_name} PUBLIC glog pthread muduo)
+    target_link_libraries(${target_name} PUBLIC muduo)
     list(APPEND target_list ${target_name})
 endforeach()
 

@@ -6,13 +6,13 @@
 #include <thread>
 
 void thread_func() {
-    LOG(INFO) << "pid=" << getpid() << ", tid=" << tid();
+    LOG(INFO) << "in thread_func: pid=" << getpid() << ", tid=" << tid();
     std::unique_ptr<EventLoop> loop(new EventLoop());
     loop->Loop();
 }
 
 int main(int argc, char **argv) {
-    LOG(INFO) << "pid=" << getpid() << ", tid=" << tid();
+    LOG(INFO) << "in main: pid=" << getpid() << ", tid=" << tid();
     auto loop = std::make_unique<EventLoop>();
     std::thread bgt(thread_func);
     bgt.join();
