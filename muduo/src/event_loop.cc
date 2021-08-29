@@ -51,7 +51,7 @@ void EventLoop::Loop() {
     LOG(INFO) << "event_loop=" << this << " start looping ...";
     while (!_quit) {
         _active_channels.clear();
-        _poll_return_time = _poller->Poll(100/*ms*/, &_active_channels);
+        _poll_return_time = _poller->Poll(1000/*ms*/, &_active_channels);
         _event_handling = true;
         // TODO: sort channel by priority
         for (auto it = _active_channels.begin();
@@ -87,4 +87,12 @@ void EventLoop::UpdateChannel(Channel *ch) {
     assert(ch->OwnerLoop() == this);
     AssertInLoopThread();
     _poller->UpdateChannel(ch);
+}
+
+void EventLoop::Quit() {
+    _quit = true;
+    if (!IsInLoopThread()) {
+        //wakeup();
+    }
+    LOG(INFO) << "set quit flag of event_loop=" << this << ", pid=" << getpid() << ", tid=" << tid() << ", this loop's owner tid=" << _threadid;
 }

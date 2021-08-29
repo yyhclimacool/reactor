@@ -23,6 +23,7 @@ public:
     // 运行事件循环
     // 必须在EventLoop所属线程中调用
     void Loop();
+    void Quit();
 
     // if assert failed, abort the program.
     void AssertInLoopThread() const;
