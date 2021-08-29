@@ -11,7 +11,7 @@ void thread_func() {
     loop->Loop();
 }
 
-int main(int argc, char **argv) {
+int main() {
     LOG(INFO) << "in main: pid=" << getpid() << ", tid=" << tid();
     auto loop = std::make_unique<EventLoop>();
     std::thread bgt(thread_func);

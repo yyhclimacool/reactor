@@ -12,6 +12,7 @@ set(HEADERS
     src/event_loop.h
     src/poller.h
     src/timestamp.h
+    src/timer.h
 )
 
 add_subdirectory(test)

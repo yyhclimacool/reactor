@@ -8,10 +8,6 @@
 class Timestamp : public boost::equality_comparable<Timestamp>,
                   public boost::less_than_comparable<Timestamp> {
 public:
-    // operators's reload
-    friend bool operator<(Timestamp lhs, Timestamp rhs);
-    friend bool operator==(Timestamp lhs, Timestamp rhs);
-    friend double operator-(Timestamp lhs, Timestamp rhs);
     template<typename OS>
     friend OS &operator<<(OS &, Timestamp t);
     Timestamp & operator+=(double t) {
@@ -40,7 +36,7 @@ public:
     static Timestamp FromUnixTime(time_t t, uint64_t ms) {
         return Timestamp(static_cast<uint64_t>(t) * kMicroSecondsPerSecond + ms);
     }
-private:
+public:
     static const uint64_t kMicroSecondsPerSecond = 1000 * 1000;
     uint64_t _ms_since_epoch = 0;
 };
