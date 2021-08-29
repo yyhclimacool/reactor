@@ -5,12 +5,12 @@
 #include <sys/epoll.h>
 #include <sys/poll.h>
 
-static_assert(EPOLLIN == POLLIN, "EPOLLIN equals to POLLIN");
-static_assert(EPOLLPRI == POLLPRI, "EPOLLPRI equals to POLLPRI");
-static_assert(EPOLLOUT == POLLOUT, "EPOLLOUT equals to POLLOUT");
+static_assert(EPOLLIN == POLLIN,       "EPOLLIN equals to POLLIN");
+static_assert(EPOLLPRI == POLLPRI,     "EPOLLPRI equals to POLLPRI");
+static_assert(EPOLLOUT == POLLOUT,     "EPOLLOUT equals to POLLOUT");
 static_assert(EPOLLRDHUP == POLLRDHUP, "EPOLLRDHUP equals to POLLRDHUP");
-static_assert(EPOLLERR == POLLERR, "EPOLLERR equals to POLLERR");
-static_assert(EPOLLHUP == POLLHUP, "EPOLLHUP equals to POLLHUP");
+static_assert(EPOLLERR == POLLERR,     "EPOLLERR equals to POLLERR");
+static_assert(EPOLLHUP == POLLHUP,     "EPOLLHUP equals to POLLHUP");
 
 namespace {
     const int kNew = -1;
@@ -22,7 +22,6 @@ EPollPoller::EPollPoller(EventLoop *loop)
     : Poller(loop),
       _epollfd(epoll_create1(EPOLL_CLOEXEC)),
       _events(kInitEventListSize) {
-    
     if (_epollfd < 0) {
         LOG(FATAL) << "create epoll fd failed, loop=" << loop;
     }
@@ -64,22 +63,22 @@ void EPollPoller::FillActiveChannels(int num_events, std::vector<Channel *> *act
     for (int i = 0; i < num_events; ++i) {
         Channel *ch = static_cast<Channel *>(_events[i].data.ptr);
 #ifndef NDEBUG
-        int fd = ch->fd();
+        int fd = ch->Fd();
         auto it = _channels.find(fd);
         assert(it != _channels.end());
         assert(it->second == ch);
 #endif
-        ch->SetREvents(_events[i].events);
+        ch->SetRevents(_events[i].events);
         active_channels->push_back(ch);
     }
 }
 
-void EPollPoller::UpdataChannel(Channel *ch) {
+void EPollPoller::UpdateChannel(Channel *ch) {
     AssertInLoopThread();
-    const int index = ch->index();
-    LOG(INFO) << "fd=" << ch->fd() << ", events=" << ch->events() << ", index=" << ch->index();
+    const int index = ch->Index();
+    LOG(INFO) << "fd=" << ch->Fd() << ", events=" << ch->Events() << ", index=" << ch->Index();
     if (index == kNew || index == kDeleted) {
-        int fd = ch->fd();
+        int fd = ch->Fd();
         if (index == kNew) {
             assert(_channels.find(fd) == _channels.end());
             _channels[fd] = ch;
@@ -87,16 +86,16 @@ void EPollPoller::UpdataChannel(Channel *ch) {
             assert(_channels.find(fd) != _channels.end());
             assert(_channels[fd] == ch);
         }
-        ch->set_index(kAdded);
+        ch->SetIndex(kAdded);
         Update(EPOLL_CTL_ADD, ch);
     } else {
-        int fd = ch->fd();
+        int fd = ch->Fd();
         (void) fd;
         assert(_channels.find(fd) != _channels.end());
         assert(_channels[fd] == ch);
         assert(index == kAdded);
-        if (ch->isNoneEvent()) {
-            ch->set_index(kDeleted);
+        if (ch->IsNoneEvent()) {
+            ch->SetIndex(kDeleted);
             Update(EPOLL_CTL_DEL, ch);
         } else {
             Update(EPOLL_CTL_MOD, ch);

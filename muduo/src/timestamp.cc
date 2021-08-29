@@ -6,7 +6,7 @@ std::string Timestamp::ToString() const {
     char buf[32] = {0};
     uint64_t seconds = _ms_since_epoch / kMicroSecondsPerSecond;
     uint64_t ms = _ms_since_epoch % kMicroSecondsPerSecond;
-    snprintf(buf, sizeof(buf), "%ul.%06ul", seconds, ms);
+    snprintf(buf, sizeof(buf), "%lu.%06lu", seconds, ms);
     return buf;
 }
 

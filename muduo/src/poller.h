@@ -15,10 +15,10 @@ public:
     virtual Timestamp Poll(int timeout_ms, std::vector<Channel *> *active_channels) = 0;
     virtual void UpdateChannel(Channel *) = 0;
     virtual void RemoveChannel(Channel *) = 0;
-    virtual bool HasChannel(Channel *) = 0;
+    virtual bool HasChannel(Channel *) const ;
 
     static Poller *NewDefaultPoller(EventLoop *loop);
-    inline void AssertInLoopThread() const;
+    void AssertInLoopThread() const;
 protected:
     std::map<int, Channel *> _channels;
 private:

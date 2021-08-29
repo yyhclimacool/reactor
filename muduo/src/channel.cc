@@ -1,6 +1,13 @@
 #include "channel.h"
 #include "event_loop.h"
 
+#include <sstream>
+
+#include <sys/epoll.h>
+#include <sys/poll.h>
+
+#include <glog/logging.h>
+
 Channel::Channel(EventLoop *loop, int fd)
     : _loop(loop),
       _fd(fd),
@@ -45,7 +52,7 @@ std::string Channel::EventsToString() const {
 
 std::string Channel::EventsToString(int fd, int ev) {
     std::ostringstream oss;
-    oss << "fd=" << _fd << ":";
+    oss << "fd=" << fd << ":";
     if (ev & POLLIN)    oss << "IN ";
     if (ev & POLLPRI)   oss << "PRI ";
     if (ev & POLLOUT)   oss << "OUT ";
@@ -57,13 +64,13 @@ std::string Channel::EventsToString(int fd, int ev) {
     return oss.str();
 }
 
-void Channnel::Remove() {
+void Channel::Remove() {
     assert(IsNoneEvent());
     _added_to_loop = false;
     _loop->RemoveChannel(this);
 }
 
-void Channnel::Update() {
+void Channel::Update() {
     _added_to_loop = true;
     _loop->UpdateChannel(this);
 }
@@ -87,7 +94,7 @@ void Channel::HandleEventWithGuard(Timestamp receive_time) {
     }
 
     if (_revents & (POLLIN | POLLPRI | POLLRDHUP)) {
-        if (_read_callback) _read_callback(reveive_time);
+        if (_read_callback) _read_callback(receive_time);
     }
 
     if (_revents & POLLOUT) {
