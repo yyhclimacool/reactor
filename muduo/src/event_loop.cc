@@ -49,8 +49,20 @@ void EventLoop::Loop() {
     AssertInLoopThread();
     _looping = true;
     LOG(INFO) << "event_loop=" << this << " start looping ...";
-    std::vector<Channel *> active_channels;
-    auto ts = _poller->Poll(100/*ms*/, &active_channels);
+    while (!_quit) {
+        _active_channels.clear();
+        _poll_return_time = _poller->Poll(100/*ms*/, &_active_channels);
+        _event_handling = true;
+        // TODO: sort channel by priority
+        for (auto it = _active_channels.begin();
+                it != _active_channels.end();
+                ++it) {
+            _current_active_channel = *it;
+            _current_active_channel->HandleEvent(_poll_return_time);
+        }
+        _current_active_channel = nullptr;
+        _event_handling = false;
+    }
     LOG(INFO) << "event_loop=" << this << " stop looping.";
     _looping = false;
 }

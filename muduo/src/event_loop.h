@@ -52,7 +52,7 @@ private:
     std::atomic<bool> _event_handling;
 
     // epoll_wait的返回的时间戳
-    Timestamp _poolRetrunTime;
+    Timestamp _poll_return_time;
 
     // epoll_wait返回的活动Channel
     std::vector<Channel *> _active_channels;

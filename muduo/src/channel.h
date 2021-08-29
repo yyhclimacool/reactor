@@ -11,6 +11,7 @@ class EventLoop;
 //
 // this class dosen't own the file descriptor
 // a file descriptor could be a socket, eventfd, timerfd or a signalfd
+// 不拥有fd就意味着不负责管理fd相关的OS资源，Channel析构时不负责close该fd
 class Channel {
 public:
     using EventCallback = std::function<void()>;
