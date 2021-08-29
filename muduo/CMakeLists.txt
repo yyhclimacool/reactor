@@ -1,3 +1,4 @@
+include_directories(${PROJECT_SOURCE_DIR})
 aux_source_directory(src muduo_srcs)
 #set(muduo_srcs
 #    src/timestamp.cc
@@ -11,5 +12,8 @@ set(HEADERS
     src/poller.h
     src/timestamp.h
     )
+
+add_subdirectory(test)
+
 install(FILES ${HEADERS} DESTINATION include/)
 install(TARGETS muduo DESTINATION lib/)

@@ -1,5 +1,5 @@
-#include "epoll_poller.h"
-#include "channel.h"
+#include "muduo/src/epoll_poller.h"
+#include "muduo/src/channel.h"
 
 #include <glog/logging.h>
 #include <sys/epoll.h>
@@ -79,26 +79,80 @@ void EPollPoller::UpdateChannel(Channel *ch) {
     LOG(INFO) << "fd=" << ch->Fd() << ", events=" << ch->Events() << ", index=" << ch->Index();
     if (index == kNew || index == kDeleted) {
         int fd = ch->Fd();
+        // if it's a new channel.
         if (index == kNew) {
             assert(_channels.find(fd) == _channels.end());
             _channels[fd] = ch;
-        } else {
+        } else { // if this channel is marked deleted, but not real deleted from map.
             assert(_channels.find(fd) != _channels.end());
             assert(_channels[fd] == ch);
         }
-        ch->SetIndex(kAdded);
         Update(EPOLL_CTL_ADD, ch);
+        // TODO : check
+        ch->SetIndex(kAdded);
     } else {
         int fd = ch->Fd();
-        (void) fd;
         assert(_channels.find(fd) != _channels.end());
         assert(_channels[fd] == ch);
         assert(index == kAdded);
         if (ch->IsNoneEvent()) {
-            ch->SetIndex(kDeleted);
+            // marked as non-event, delete it and mark it's index as kDeleted.
             Update(EPOLL_CTL_DEL, ch);
+            ch->SetIndex(kDeleted);
         } else {
+            // not non-event, but actually it's event has changed, so update to epoll.
             Update(EPOLL_CTL_MOD, ch);
+        }
+    }
+}
+
+// 这里的channel的index表示的channel的状态
+// 不论channel是哪种状态，调用该函数都是将该channel从epoll poller中彻底删除，包括从epollfd中删除，也从channel map中删除
+// 如果channel是kAdded状态，处理逻辑稍微不同
+// 最终都将channel置为kNew的状态
+void EPollPoller::RemoveChannel(Channel *ch) {
+    AssertInLoopThread();
+    int fd = ch->Fd();
+    assert(_channels.find(fd) != _channels.end());
+    assert(_channels[fd] == ch);
+    assert(ch->IsNoneEvent());
+    int index = ch->Index();
+    assert(index == kAdded || index == kDeleted);
+    size_t n = _channels.erase(fd);
+    (void)n;
+    assert(n == 1);
+    if (index == kAdded) {
+        Update(EPOLL_CTL_DEL, ch);
+    }
+    ch->SetIndex(kNew);
+}
+
+const char *EPollPoller::OperationToString(int op) {
+    switch(op) {
+        case EPOLL_CTL_ADD:
+            return "ADD";
+        case EPOLL_CTL_DEL:
+            return "DEL";
+        case EPOLL_CTL_MOD:
+            return "MOD";
+        default:
+            assert(false && "ERROR OP");
+            return "Invalid Operation";
+    }
+}
+
+void EPollPoller::Update(int op, Channel *ch) {
+    struct epoll_event event;
+    memset(&event, 0x00, sizeof(event));
+    event.events = ch->Events();
+    event.data.ptr = ch;
+    int fd = ch->Fd();
+    LOG(INFO) << "epoll_ctl op=" << OperationToString(op) << ", fd=" << fd << ", event=" << ch->EventsToString();
+    if (epoll_ctl(_epollfd, op, fd, &event) < 0) {
+        if (op == EPOLL_CTL_DEL) {
+            LOG(WARNING) << "epoll_ctl_del for fd=" << fd << " failed.";
+        } else {
+            LOG(WARNING) << "epoll_ctl op=" << OperationToString(op) << " for fd=" << fd << " failed.";
         }
     }
 }
