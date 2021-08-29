@@ -46,9 +46,9 @@ void EventLoop::AssertInLoopThread() const {
 // 该线程称作I/O线程
 void EventLoop::Loop() {
     assert(!_looping);
-    _looping = true;
     AssertInLoopThread();
-    LOG(INFO) << "event_loop=" << this << " starts looping ...";
+    _looping = true;
+    LOG(INFO) << "event_loop=" << this << " start looping ...";
     std::vector<Channel *> active_channels;
     auto ts = _poller->Poll(100/*ms*/, &active_channels);
     LOG(INFO) << "event_loop=" << this << " stop looping.";

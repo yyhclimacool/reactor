@@ -21,6 +21,7 @@ public:
     EventLoop &operator=(const EventLoop &) = delete;
 
     // 运行事件循环
+    // 必须在EventLoop所属线程中调用
     void Loop();
 
     // if assert failed, abort the program.
