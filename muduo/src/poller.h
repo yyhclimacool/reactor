@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 
+namespace muduo {
+
 class Channel;
 class EventLoop;
 
@@ -24,3 +26,5 @@ protected:
 private:
     EventLoop *_owner_loop;
 };
+
+} // namespace muduo

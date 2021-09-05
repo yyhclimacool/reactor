@@ -5,6 +5,8 @@
 #include <functional>
 #include <atomic>
 
+namespace muduo {
+
 class Timer;
 class TimerQueue;
 
@@ -44,3 +46,5 @@ private:
 
     static std::atomic<int64_t> _s_num_created;
 };
+
+} // namespace muduo

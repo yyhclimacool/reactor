@@ -5,6 +5,8 @@
 
 #include <glog/logging.h>
 
+using namespace muduo;
+
 thread_local EventLoop *t_LoopInThisThread = nullptr;
 
 EventLoop::EventLoop() 

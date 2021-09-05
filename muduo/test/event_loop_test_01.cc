@@ -5,6 +5,8 @@
 #include <memory>
 #include <thread>
 
+using namespace muduo;
+
 void thread_func() {
     LOG(INFO) << "in thread_func: pid=" << getpid() << ", tid=" << tid();
     std::unique_ptr<EventLoop> loop(new EventLoop());

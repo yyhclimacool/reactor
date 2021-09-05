@@ -2,6 +2,8 @@
 #include "channel.h"
 #include "event_loop.h"
 
+using namespace muduo;
+
 Poller::Poller(EventLoop *loop) : _owner_loop(loop) {}
 
 Poller::~Poller() = default;

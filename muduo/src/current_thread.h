@@ -1,5 +1,7 @@
 #pragma once
 
+namespace muduo {
+
 extern __thread int t_cached_tid;
 extern __thread int t_tid_string_length;
 extern __thread char t_tid_string[32];
@@ -12,3 +14,5 @@ inline int tid(){
     }
     return t_cached_tid;
 }
+
+} // namespace muduo

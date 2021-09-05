@@ -7,6 +7,8 @@
 #include <functional>
 #include <utility>
 
+using namespace muduo;
+
 EventLoop *g_loop;
 int timerfd;
 

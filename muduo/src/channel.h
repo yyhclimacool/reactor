@@ -5,6 +5,8 @@
 #include <functional>
 #include <memory>
 
+namespace muduo {
+
 class EventLoop;
 
 // A selectable I/O channel
@@ -89,3 +91,5 @@ private:
     EventCallback     _close_callback;
     EventCallback     _error_callback;
 };
+
+} // namespace muduo

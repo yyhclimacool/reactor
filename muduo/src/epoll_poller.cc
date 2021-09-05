@@ -12,6 +12,8 @@ static_assert(EPOLLRDHUP == POLLRDHUP, "EPOLLRDHUP equals to POLLRDHUP");
 static_assert(EPOLLERR == POLLERR,     "EPOLLERR equals to POLLERR");
 static_assert(EPOLLHUP == POLLHUP,     "EPOLLHUP equals to POLLHUP");
 
+using namespace muduo;
+
 namespace {
     const int kNew = -1;
     const int kAdded = 1;

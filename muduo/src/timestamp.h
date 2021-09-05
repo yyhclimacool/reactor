@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <string>
 
+namespace muduo {
+
 class Timestamp : public boost::equality_comparable<Timestamp>,
                   public boost::less_than_comparable<Timestamp> {
 public:
@@ -58,3 +60,5 @@ template<typename OS>
 OS &operator<<(OS &os, Timestamp t) {
     os << t.ToFormattedString();
 }
+
+} // namespace muduo

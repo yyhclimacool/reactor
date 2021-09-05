@@ -2,6 +2,8 @@
 
 #include <sys/time.h>
 
+using namespace muduo;
+
 std::string Timestamp::ToString() const {
     char buf[32] = {0};
     uint64_t seconds = _ms_since_epoch / kMicroSecondsPerSecond;

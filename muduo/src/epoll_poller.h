@@ -6,6 +6,8 @@
 
 struct epoll_event;
 
+namespace muduo {
+
 // epoll作为poller的实现
 class EPollPoller : public Poller {
 public:
@@ -26,3 +28,5 @@ private:
     int _epollfd;
     std::vector<struct epoll_event> _events;
 };
+
+} // namespace muduo

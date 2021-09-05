@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+namespace muduo {
+
 class Channel;
 class Poller;
 
@@ -61,3 +63,5 @@ private:
     // 当前正在处理的活动Channel
     Channel * _current_active_channel;
 };
+
+} // namespace muduo

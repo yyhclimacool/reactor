@@ -2,6 +2,8 @@
 
 #include <thread>
 
+using namespace muduo;
+
 EventLoop *g_loop;
 
 void thread_func() {
