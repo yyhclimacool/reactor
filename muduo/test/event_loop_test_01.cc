@@ -17,7 +17,7 @@ int main() {
     LOG(INFO) << "in main: pid=" << getpid() << ", tid=" << tid();
     auto loop = std::make_unique<EventLoop>();
     std::thread bgt(thread_func);
-    bgt.join();
+    bgt.detach();
     loop->Loop();
 
     return 0;

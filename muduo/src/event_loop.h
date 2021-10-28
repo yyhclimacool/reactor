@@ -5,11 +5,14 @@
 #include <atomic>
 #include <memory>
 #include <vector>
+#include <functional>
 
 namespace muduo {
 
 class Channel;
 class Poller;
+class TimerId;
+class TimerQueue;
 
 // 事件循环：one loop per thread 的实现
 //
@@ -26,6 +29,11 @@ public:
     // 必须在EventLoop所属线程中调用
     void Loop();
     void Quit();
+
+    TimerId RunAt(Timestamp time, std::function<void()> cb);
+    TimerId RunAfter(double delay, std::function<void()> cb);
+    TimerId RunEvery(double interval, std::function<void()> cb);
+    void Cancel(TimerId timerid);
 
     // if assert failed, abort the program.
     void AssertInLoopThread() const;
@@ -62,6 +70,9 @@ private:
 
     // 当前正在处理的活动Channel
     Channel * _current_active_channel;
+
+    // 处理定时器事件
+    TimerQueue *_timer_queue;
 };
 
 } // namespace muduo

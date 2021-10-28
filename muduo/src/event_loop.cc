@@ -2,6 +2,8 @@
 #include "current_thread.h"
 #include "event_loop.h"
 #include "poller.h"
+#include "timer.h"
+#include "timer_queue.h"
 
 #include <glog/logging.h>
 
@@ -14,7 +16,8 @@ EventLoop::EventLoop()
       _threadid(tid()),
       _iteration(0),
       _looping(false),
-      _quit(false) {
+      _quit(false),
+      _timer_queue(new TimerQueue(this)) {
     // 如果当前线程的EventLoop已经存在，严重错误，退出程序
     if(t_LoopInThisThread) {
         LOG(FATAL) << "another eventloop=" << t_LoopInThisThread << " exists in this thread=" << tid();
@@ -97,4 +100,22 @@ void EventLoop::Quit() {
         //wakeup();
     }
     LOG(INFO) << "set quit flag of event_loop=" << this << ", pid=" << getpid() << ", tid=" << tid() << ", this loop's owner tid=" << _threadid;
+}
+
+TimerId EventLoop::RunAt(Timestamp time, std::function<void()> cb) {
+    return _timer_queue->AddTimer(time, 0.0, std::move(cb));
+}
+
+TimerId EventLoop::RunAfter(double delay, std::function<void()> cb) {
+    auto time = Timestamp::Now() + delay;
+    return RunAt(time, cb);
+}
+
+TimerId EventLoop::RunEvery(double interval, std::function<void()> cb) {
+    auto time = Timestamp::Now() + interval;
+    return _timer_queue->AddTimer(time, interval, std::move(cb));
+}
+
+void EventLoop::Cancel(TimerId timerid) {
+    return _timer_queue->Cancel(timerid);
 }

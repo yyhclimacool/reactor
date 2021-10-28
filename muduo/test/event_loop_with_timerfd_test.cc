@@ -14,11 +14,11 @@ int timerfd;
 
 void timeout(Timestamp receive_time, Channel *ch) {
     LOG(INFO) << "Timeout !" << " receive_time=" << receive_time.ToFormattedString() << ", pid=" << getpid() << ", tid=" << tid();
-    uint64_t howmany;
     // LT
+    uint64_t howmany;
     read(timerfd, &howmany, sizeof(howmany));
     g_loop->Quit();
-
+    
     ch->DisableAll();
     ch->Remove();
 }

@@ -16,6 +16,9 @@ public:
         _ms_since_epoch += static_cast<uint64_t>(t * kMicroSecondsPerSecond);
         return *this;
     }
+    Timestamp operator+(double gap) {
+        return operator+=(gap);
+    }
     
     Timestamp() = default;
     explicit Timestamp(uint64_t ms_since_epoch) : _ms_since_epoch(ms_since_epoch) {}
