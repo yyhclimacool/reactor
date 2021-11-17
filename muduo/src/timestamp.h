@@ -54,14 +54,14 @@ inline bool operator==(Timestamp lhs, Timestamp rhs) {
     return lhs._ms_since_epoch == rhs._ms_since_epoch;
 }
 
-inline double operator-(Timestamp lhs, Timestamp rhs) {
+inline int64_t operator-(Timestamp lhs, Timestamp rhs) {
     assert(rhs < lhs);
-    return static_cast<double>(lhs._ms_since_epoch - rhs._ms_since_epoch)/Timestamp::kMicroSecondsPerSecond;
+    return static_cast<int64_t>(lhs._ms_since_epoch - rhs._ms_since_epoch);
 }
 
 template<typename OS>
 OS &operator<<(OS &os, Timestamp t) {
-    os << t.ToFormattedString();
+    return os << t.ToFormattedString();
 }
 
 } // namespace muduo

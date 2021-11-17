@@ -72,7 +72,7 @@ private:
     Channel * _current_active_channel;
 
     // 处理定时器事件
-    TimerQueue *_timer_queue;
+    std::unique_ptr<TimerQueue> _timer_queue;
 };
 
 } // namespace muduo

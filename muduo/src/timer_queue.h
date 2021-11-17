@@ -1,5 +1,10 @@
 #pragma once
 
+#include "muduo/src/channel.h"
+#include "muduo/src/timestamp.h"
+
+#include <atomic>
+#include <functional>
 #include <set>
 
 namespace muduo {
@@ -19,6 +24,11 @@ public:
     void Cancel(TimerId timerid);
 
 private:
+    void HandleRead();
+    void AddTimerInLoop(Timer *timer);
+    bool Insert(Timer *);
+
+private:
     typedef std::pair<Timestamp, Timer *> Entry;
     typedef std::set<Entry> TimerSet;
     typedef std::pair<Timer *, int64_t> ActiveTimer;
@@ -30,7 +40,7 @@ private:
     TimerSet _timers;
 
     ActiveTimerSet _active_timers;
-    bool _calling_expired_timers; /* atomic */
+    std::atomic<bool> _calling_expired_timers;
     ActiveTimerSet _canceling_timers;
 };
 
