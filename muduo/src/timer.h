@@ -1,9 +1,9 @@
-#pragma once
+/* #pragma once
+
+#include <atomic>
+#include <functional>
 
 #include "muduo/src/timestamp.h"
-
-#include <functional>
-#include <atomic>
 
 namespace muduo {
 
@@ -48,3 +48,4 @@ private:
 };
 
 } // namespace muduo
+ */

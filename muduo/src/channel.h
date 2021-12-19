@@ -1,20 +1,20 @@
 #pragma once
 
-#include "timestamp.h"
-
 #include <functional>
 #include <memory>
 
+#include "timestamp.h"
+
 namespace muduo {
 
-class EventLoop;
+  class EventLoop;
 
-// A selectable I/O channel
-//
-// this class dosen't own the file descriptor
-// a file descriptor could be a socket, eventfd, timerfd or a signalfd
-// 不拥有fd就意味着不负责管理fd相关的OS资源，Channel析构时不负责close该fd
-class Channel {
+  // A selectable I/O channel
+  //
+  // this class dosen't own the file descriptor
+  // a file descriptor could be a socket, eventfd, timerfd or a signalfd
+  // 不拥有fd就意味着不负责管理fd相关的OS资源，Channel析构时不负责close该fd
+  class Channel {
 public:
     using EventCallback = std::function<void()>;
     using ReadEventCallback = std::function<void(Timestamp)>;
@@ -22,74 +22,83 @@ public:
     Channel(EventLoop *loop, int fd);
     ~Channel();
 
-    void HandleEvent(Timestamp receive_time);
+    void handle_event(Timestamp receive_time);
 
-    void SetReadCallback(ReadEventCallback rcb) {
-        _read_callback = std::move(rcb);
-    }
-    void SetWriteCallback(EventCallback wcb) {
-        _write_callback = std::move(wcb);
-    }
-    void SetCloseCallback(EventCallback ccb) {
-        _close_callback = std::move(ccb);
-    }
-    void SetErrorCallback(EventCallback ecb) {
-        _error_callback = std::move(ecb);
-    }
+    void set_read_callback(ReadEventCallback rcb) { _read_callback = std::move(rcb); }
+    void set_write_callback(EventCallback wcb) { _write_callback = std::move(wcb); }
+    void set_close_callback(EventCallback ccb) { _close_callback = std::move(ccb); }
+    void set_error_callback(EventCallback ecb) { _error_callback = std::move(ecb); }
 
     // TODO: check this
-    void Tie(const std::shared_ptr<void> &);
+    void tie(const std::shared_ptr<void> &);
 
-    int Fd() const { return _fd; }
-    int Events() const { return _events; }
-    void SetRevents(int revt) { _revents = revt; }
+    int  fd() const { return _fd; }
+    int  events() const { return _events; }
+    void set_revents(int revt) { _revents = revt; }
 
-    bool IsNoneEvent() const { return _events == kNoneEvent; }
-    bool IsWriting() const { return _events & kWriteEvent; }
-    bool IsReading() const { return _events & kReadEvent; }
+    bool is_none_event() const { return _events == kNoneEvent; }
+    bool is_writing() const { return _events & kWriteEvent; }
+    bool is_reading() const { return _events & kReadEvent; }
 
-    void EnableReading() { _events |= kReadEvent; Update(); }
-    void DisableReading() { _events &= ~kReadEvent; Update(); }
-    void EnableWriting() { _events |= kWriteEvent; Update(); }
-    void DisableWriting() { _events &= ~kWriteEvent; Update(); }
-    void DisableAll() { _events = kNoneEvent; Update(); }
+    void enable_reading() {
+      _events |= kReadEvent;
+      update();
+    }
+    void disable_reading() {
+      _events &= ~kReadEvent;
+      update();
+    }
+    void enable_writing() {
+      _events |= kWriteEvent;
+      update();
+    }
+    void disable_writing() {
+      _events &= ~kWriteEvent;
+      update();
+    }
+    void disable_all() {
+      _events = kNoneEvent;
+      update();
+    }
 
-    int Index() const { return _index; }
-    void SetIndex(int idx) { _index = idx; }
+    int  index() const { return _index; }
+    void set_index(int idx) { _index = idx; }
 
-    std::string ReventsToString() const;
-    std::string EventsToString() const;
+    std::string revents_to_string() const;
+    std::string events_to_string() const;
 
-    void DisableLogHup() { _log_hup = false; }
+    void disable_log_hup() { _log_hup = false; }
 
-    EventLoop *OwnerLoop() { return _loop; }
-    void Remove();
+    EventLoop *owner_loop() { return _loop; }
+    void       remove();
+
 private:
-    static std::string EventsToString(int fd, int ev);
+    static std::string events_to_string(int fd, int ev);
 
-    void Update();
-    void HandleEventWithGuard(Timestamp receive_time);
+    void update();
+    void handle_event_with_guard(Timestamp receive_time);
+
 private:
     static const int kNoneEvent;
     static const int kReadEvent;
     static const int kWriteEvent;
 
     EventLoop *_loop;
-    const int _fd;
-    int _events;
-    int _revents; // received event types
-    int _index; // used by poller.
-    bool _log_hup;
+    const int  _fd;
+    int        _events;
+    int        _revents; // received event types
+    int        _index;   // used by poller.
+    bool       _log_hup;
 
     std::weak_ptr<void> _tie;
-    bool _tied;
-    bool _event_handling;
-    bool _added_to_loop;
+    bool                _tied;
+    bool                _event_handling;
+    bool                _added_to_loop;
 
     ReadEventCallback _read_callback;
     EventCallback     _write_callback;
     EventCallback     _close_callback;
     EventCallback     _error_callback;
-};
+  };
 
 } // namespace muduo

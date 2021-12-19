@@ -1,4 +1,4 @@
-#include "muduo/src/timer.h"
+/* #include "muduo/src/timer.h"
 
 using namespace muduo;
 
@@ -12,3 +12,4 @@ void Timer::Restart(Timestamp now) {
         _expiration = Timestamp::Invalid();
     }
 }
+ */
