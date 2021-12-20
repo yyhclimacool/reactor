@@ -36,7 +36,7 @@ Timestamp EPollPoller::poll(int timeout_ms, std::vector<Channel *> *active_chann
   LOG(INFO) << "total fd num=" << _channels.size() << " in epoll[" << this << "]";
   int  num_events = epoll_wait(_epollfd, _events.data(), static_cast<int>(_events.size()), timeout_ms);
   int  saved_errno = errno;
-  auto now = Timestamp::Now();
+  auto now = Timestamp::now();
   if (num_events > 0) {
     LOG(INFO) << "num_events=" << num_events << " happend in epoll[" << this << "]";
     fill_active_channels(num_events, active_channels);
@@ -61,22 +61,22 @@ void EPollPoller::fill_active_channels(int num_events, std::vector<Channel *> *a
   for (int i = 0; i < num_events; ++i) {
     Channel *ch = static_cast<Channel *>(_events[ i ].data.ptr);
 #ifndef NDEBUG
-    int  fd = ch->Fd();
+    int  fd = ch->fd();
     auto it = _channels.find(fd);
     assert(it != _channels.end());
     assert(it->second == ch);
 #endif
-    ch->SetRevents(_events[ i ].events);
+    ch->set_revents(_events[ i ].events);
     active_channels->push_back(ch);
   }
 }
 
 void EPollPoller::update_channel(Channel *ch) {
   assert_in_loop_thread();
-  const int index = ch->Index();
-  LOG(INFO) << "fd=" << ch->Fd() << ", events=" << ch->Events() << ", index=" << ch->Index();
+  const int index = ch->index();
+  LOG(INFO) << "fd=" << ch->fd() << ", events=" << ch->events() << ", index=" << ch->index();
   if (index == kNew || index == kDeleted) {
-    int fd = ch->Fd();
+    int fd = ch->fd();
     // if it's a new channel.
     if (index == kNew) {
       assert(_channels.find(fd) == _channels.end());
@@ -87,16 +87,16 @@ void EPollPoller::update_channel(Channel *ch) {
     }
     update(EPOLL_CTL_ADD, ch);
     // TODO : check
-    ch->SetIndex(kAdded);
+    ch->set_index(kAdded);
   } else {
-    int fd = ch->Fd();
+    int fd = ch->fd();
     assert(_channels.find(fd) != _channels.end());
     assert(_channels[ fd ] == ch);
     assert(index == kAdded);
-    if (ch->IsNoneEvent()) {
+    if (ch->is_none_event()) {
       // marked as non-event, delete it and mark it's index as kDeleted.
       update(EPOLL_CTL_DEL, ch);
-      ch->SetIndex(kDeleted);
+      ch->set_index(kDeleted);
     } else {
       // not non-event, but actually it's event has changed, so update to epoll.
       update(EPOLL_CTL_MOD, ch);
@@ -110,11 +110,11 @@ void EPollPoller::update_channel(Channel *ch) {
 // 最终都将channel置为kNew的状态
 void EPollPoller::remove_channel(Channel *ch) {
   assert_in_loop_thread();
-  int fd = ch->Fd();
+  int fd = ch->fd();
   assert(_channels.find(fd) != _channels.end());
   assert(_channels[ fd ] == ch);
-  assert(ch->IsNoneEvent());
-  int index = ch->Index();
+  assert(ch->is_none_event());
+  int index = ch->index();
   assert(index == kAdded || index == kDeleted);
   size_t n = _channels.erase(fd);
   (void)n;
@@ -122,7 +122,7 @@ void EPollPoller::remove_channel(Channel *ch) {
   if (index == kAdded) {
     update(EPOLL_CTL_DEL, ch);
   }
-  ch->SetIndex(kNew);
+  ch->set_index(kNew);
 }
 
 const char *EPollPoller::operation_to_string(int op) {
@@ -142,10 +142,10 @@ const char *EPollPoller::operation_to_string(int op) {
 void EPollPoller::update(int op, Channel *ch) {
   struct epoll_event event;
   memset(&event, 0x00, sizeof(event));
-  event.events = ch->Events();
+  event.events = ch->events();
   event.data.ptr = ch;
-  int fd = ch->Fd();
-  LOG(INFO) << "epoll_ctl op=" << operation_to_string(op) << ", fd=" << fd << ", event=" << ch->EventsToString();
+  int fd = ch->fd();
+  LOG(INFO) << "epoll_ctl op=" << operation_to_string(op) << ", fd=" << fd << ", event=" << ch->events_to_string();
   if (epoll_ctl(_epollfd, op, fd, &event) < 0) {
     if (op == EPOLL_CTL_DEL) {
       LOG(WARNING) << "epoll_ctl_del for fd=" << fd << " failed.";

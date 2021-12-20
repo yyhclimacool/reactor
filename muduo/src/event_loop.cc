@@ -56,12 +56,12 @@ void EventLoop::loop() {
   LOG(INFO) << "event_loop=" << this << " start looping ...";
   while (!_quit) {
     _active_channels.clear();
-    _poll_return_time = _poller->poll(1000 /*ms*/, &_active_channels);
+    _poll_return_ts = _poller->poll(1000 /*ms*/, &_active_channels);
     _event_handling = true;
     // TODO: sort channel by priority
     for (auto it = _active_channels.begin(); it != _active_channels.end(); ++it) {
       _current_active_channel = *it;
-      _current_active_channel->handle_event(_poll_return_time);
+      _current_active_channel->handle_event(_poll_return_ts);
     }
     _current_active_channel = nullptr;
     _event_handling = false;

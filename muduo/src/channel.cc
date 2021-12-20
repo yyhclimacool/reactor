@@ -13,7 +13,6 @@ using namespace muduo;
 const int Channel::kNoneEvent = 0;
 const int Channel::kReadEvent = POLLIN | POLLPRI;
 const int Channel::kWriteEvent = POLLOUT;
-.
 Channel::Channel(EventLoop *loop, int fd)
     : _loop(loop)
     , _fd(fd)
@@ -25,34 +24,36 @@ Channel::Channel(EventLoop *loop, int fd)
     , _event_handling(false)
     , _added_to_loop(false) {}
 
+// 可以在其他的线程析构
 Channel::~Channel() {
   assert(!_event_handling);
   assert(!_added_to_loop);
-  if (_loop->IsInLoopThread()) {
-    assert(!_loop->HasChannel(this));
+  if (_loop->is_in_loop_thread()) {
+    assert(!_loop->has_channel(this));
   }
 }
 
-void Channel::HandleEvent(Timestamp receive_time) {
+// 最重要的函数，在event_loop->loop中调用
+void Channel::handle_event(Timestamp receive_time) {
   std::shared_ptr<void> guard;
   if (_tied) {
     guard = _tie.lock();
-    if (guard) HandleEventWithGuard(receive_time);
+    if (guard) handle_event_with_guard(receive_time);
   } else {
-    HandleEventWithGuard(receive_time);
+    handle_event_with_guard(receive_time);
   }
 }
 
-void Channel::Tie(const std::shared_ptr<void> &obj) {
+void Channel::tie(const std::shared_ptr<void> &obj) {
   _tie = obj;
   _tied = true;
 }
 
-std::string Channel::ReventsToString() const { return EventsToString(_fd, _revents); }
+std::string Channel::revents_to_string() const { return events_to_string(_fd, _revents); }
 
-std::string Channel::EventsToString() const { return EventsToString(_fd, _events); }
+std::string Channel::events_to_string() const { return events_to_string(_fd, _events); }
 
-std::string Channel::EventsToString(int fd, int ev) {
+std::string Channel::events_to_string(int fd, int ev) {
   std::ostringstream oss;
   oss << "fd=" << fd << ":";
   if (ev & POLLIN) oss << "IN ";
@@ -66,29 +67,30 @@ std::string Channel::EventsToString(int fd, int ev) {
   return oss.str();
 }
 
-void Channel::Remove() {
-  assert(IsNoneEvent());
+// 在析构前，需要remove myself
+void Channel::remove() {
+  assert(is_none_event());
   _added_to_loop = false;
-  _loop->RemoveChannel(this);
+  _loop->remove_channel(this);
 }
 
-void Channel::Update() {
+void Channel::update() {
   _added_to_loop = true;
-  _loop->UpdateChannel(this);
+  _loop->update_channel(this);
 }
 
-void Channel::HandleEventWithGuard(Timestamp receive_time) {
+void Channel::handle_event_with_guard(Timestamp receive_time) {
   _event_handling = true;
-  LOG(INFO) << ReventsToString();
+  LOG(INFO) << revents_to_string();
   if ((_revents & POLLHUP) && !(_revents & POLLIN)) {
     if (_log_hup) {
-      LOG(WARNING) << "fd=" << _fd << " Channel::HandleEvent() POLLHUP";
+      LOG(WARNING) << "fd=" << _fd << " Channel::handle_event() POLLHUP";
     }
     if (_close_callback) _close_callback();
   }
 
   if (_revents & POLLNVAL) {
-    LOG(WARNING) << "fd=" << _fd << " Channel::HandleEvent() POLLNVAL";
+    LOG(WARNING) << "fd=" << _fd << " Channel::handle_event() POLLNVAL";
   }
 
   if (_revents & (POLLERR | POLLNVAL)) {
