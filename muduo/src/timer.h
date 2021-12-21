@@ -21,6 +21,9 @@ public:
       : _timer(timer)
       , _sequence(seq) {}
 
+  Timer  *timer() const { return _timer; }
+  int64_t sequence() const { return _sequence; }
+
 private:
   Timer  *_timer;
   int64_t _sequence;
