@@ -3,6 +3,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include "timestamp.h"
@@ -38,6 +39,12 @@ public:
   void assert_in_loop_thread() const;
   bool is_in_loop_thread() const;
 
+  void run_in_loop(std::function<void()> func);
+  void queue_in_loop(std::function<void()> func);
+
+  void wakeup();
+  void handle_read();
+
   static EventLoop *event_loop_of_current_thread();
 
   bool has_channel(Channel *);
@@ -69,6 +76,12 @@ private:
 
   // 当前正在处理的活动Channel
   Channel *_current_active_channel;
+
+  int                                _wakeupfd;
+  Channel                           *_wakeup_channel;
+  std::mutex                         _mutex; // protects _pending_functors
+  bool                               _calling_pending_functors;
+  std::vector<std::function<void()>> _pending_functors;
 
   // // 处理定时器事件
   // std::unique_ptr<TimerQueue> _timer_queue;

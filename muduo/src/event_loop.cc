@@ -1,12 +1,22 @@
 #include "event_loop.h"
 
 #include <glog/logging.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 
 #include "channel.h"
 #include "current_thread.h"
 #include "poller.h"
 #include "timer.h"
 #include "timer_queue.h"
+
+int create_eventfd() {
+  int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  if (evtfd < 0) {
+    LOG(FATAL) << "create eventfd for event_loop failed.";
+  }
+  return evtfd;
+}
 
 using namespace muduo;
 
@@ -18,6 +28,8 @@ EventLoop::EventLoop()
     , _iteration(0)
     , _looping(false)
     , _quit(false)
+    , _wakeupfd(create_eventfd())
+    , _wakeup_channel(new Channel(this, _wakeupfd))
 /* , _timer_queue(new TimerQueue(this)) */ {
   // 如果当前线程的EventLoop已经存在，严重错误，退出程序
   if (t_LoopInThisThread) {
@@ -25,6 +37,8 @@ EventLoop::EventLoop()
   } else {
     t_LoopInThisThread = this;
   }
+  _wakeup_channel->set_read_callback(std::bind(&EventLoop::handle_read, this));
+  _wakeup_channel->enable_reading();
   LOG(INFO) << "create an event_loop=" << this << " in thread=" << _threadid;
 }
 
@@ -79,6 +93,42 @@ void EventLoop::quit() {
   }
   LOG(INFO) << "set quit flag of event_loop=" << this << ", pid=" << getpid() << ", tid=" << tid()
             << ", this loop's owner tid=" << _threadid;
+}
+
+void EventLoop::run_in_loop(std::function<void()> func) {
+  if (is_in_loop_thread()) {
+    func();
+  } else {
+    queue_in_loop(std::move(func));
+  }
+}
+
+void EventLoop::queue_in_loop(std::function<void()> func) {
+  {
+    std::lock_guard<std::mutex> guard(_mutex);
+    _pending_functors.push_back(std::move(func));
+  }
+  // TODO: What to do with _calling_pending_functors ?
+  if (!is_in_loop_thread() || _calling_pending_functors) {
+    wakeup();
+  }
+}
+
+void EventLoop::wakeup() {
+  uint64_t one = 1;
+  ssize_t  n = write(_wakeupfd, &one, sizeof one);
+  if (n != sizeof one) {
+    LOG(WARNING) << "EventLoop::wakeup write " << n << " bytes instead of " << sizeof one << " bytes.";
+  }
+}
+
+// wakeup channel 的 read callback
+void EventLoop::handle_read() {
+  uint64_t one = 1;
+  ssize_t  n = read(_wakeupfd, &one, sizeof one);
+  if (n != sizeof one) {
+    LOG(WARNING) << "EventLoop::handle_read read " << n << " bytes instead of " << sizeof one << " bytes.";
+  }
 }
 
 // 可以跨线程调用吗？不可以！
