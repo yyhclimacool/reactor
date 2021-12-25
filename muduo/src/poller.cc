@@ -17,4 +17,4 @@ bool Poller::has_channel(Channel *ch) const {
   return it != _channels.end() && it->second == ch;
 }
 
-inline void Poller::assert_in_loop_thread() const { return _owner_loop->assert_in_loop_thread(); }
+void Poller::assert_in_loop_thread() const { return _owner_loop->assert_in_loop_thread(); }

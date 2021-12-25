@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include <sys/timerfd.h>
 
+#include "current_thread.h"
 #include "event_loop.h"
 #include "timer.h"
 
@@ -25,6 +26,7 @@ void read_timerfd(int timerfd, Timestamp now) {
   }
 }
 
+// 被TimerQueue::insert在loop线程中执行
 void reset_timerfd(int timerfd, Timestamp expiration) {
   struct itimerspec new_value;
   struct itimerspec old_value;
@@ -44,7 +46,6 @@ TimerQueue::TimerQueue(EventLoop *loop)
     : _loop(loop)
     , _timerfd(create_timerfd())
     , _timerfd_channel(loop, _timerfd)
-    , _timers()
     , _calling_expired_timers(false) {
   _timerfd_channel.set_read_callback(std::bind(&TimerQueue::handle_read, this));
   // we are always reading the timerfd, we disalarm it with timerfd_settime
@@ -60,14 +61,18 @@ TimerQueue::~TimerQueue() {
   }
 }
 
+// 添加定时器需要告诉我【何时触发】【定时器的重复间隔】和【定时器触发时的回调】
 TimerId TimerQueue::add_timer(Timestamp when, double interval, std::function<void()> timer_cb) {
   // TODO: use unique_ptr
   Timer *timer = new Timer(std::move(timer_cb), when, interval);
+  // 在loop线程中执行真正的add_timer操作
   _loop->run_in_loop(std::bind(&TimerQueue::add_timer_in_loop, this, timer));
   return TimerId(timer, timer->sequence());
 }
 
+// 在loop线程中执行真正的add_timer操作
 void TimerQueue::add_timer_in_loop(Timer *timer) {
+  DLOG(INFO) << "call " << __func__ << " in loop thread";
   _loop->assert_in_loop_thread();
   bool earliest_changed = insert(timer);
   if (earliest_changed) {
@@ -75,6 +80,8 @@ void TimerQueue::add_timer_in_loop(Timer *timer) {
   }
 }
 
+// 在loop线程中执行
+// @return: 新加入的这个timer是否是最早的触发超时的timer，超时时间距离现在最近
 bool TimerQueue::insert(Timer *timer) {
   _loop->assert_in_loop_thread();
   assert(_timers.size() == _active_timers.size());
@@ -98,8 +105,10 @@ bool TimerQueue::insert(Timer *timer) {
   return earliest_changed;
 }
 
+// 非loop线程中调用
 void TimerQueue::cancel(TimerId timerid) { _loop->run_in_loop(std::bind(&TimerQueue::cancel_in_loop, this, timerid)); }
 
+// 在loop线程中执行，这个函数有可能在TimerQueue::handle_read中被调用
 void TimerQueue::cancel_in_loop(TimerId timerid) {
   _loop->assert_in_loop_thread();
   assert(_timers.size() == _active_timers.size());
@@ -111,18 +120,24 @@ void TimerQueue::cancel_in_loop(TimerId timerid) {
     (void)n;
     delete it->first; // FIXME: no delete
     _active_timers.erase(it);
-  } else if (_calling_expired_timers) { // TODO: WHY?
+  } else if (_calling_expired_timers) {
+    // TODO: WHY?
+    // 一方面，这个函数在TimerQueue::handle_read中被调用
+    // 另一方面，如果同一个timerid被cancel了2次，就把它放入_calceling_timers
     _canceling_timers.insert(timer);
   }
   assert(_timers.size() == _active_timers.size());
 }
 
+// _timerfd的超时时间到了，就调用handle_read，在I/O线程中调用
+// TODO: 如何让本函数在loop线程中执行？通过channel的handle_read
 void TimerQueue::handle_read() {
   _loop->assert_in_loop_thread();
   auto now = Timestamp::now();
   read_timerfd(_timerfd, now);
   auto expired = get_expired(now);
   _calling_expired_timers = true;
+  _canceling_timers.clear();
   for (const auto &entry : expired) {
     entry.second->run();
   }
@@ -130,6 +145,9 @@ void TimerQueue::handle_read() {
   reset(expired, now);
 }
 
+// 获取所有到期时间早于现在的timers，就是已经到期的timers
+// 将这些timers从_timers和_active_timers删除
+// 在loop线程中执行
 std::vector<TimerQueue::Entry> TimerQueue::get_expired(Timestamp now) {
   assert(_timers.size() == _active_timers.size());
   std::vector<Entry> expired;
@@ -151,4 +169,28 @@ std::vector<TimerQueue::Entry> TimerQueue::get_expired(Timestamp now) {
   return expired;
 }
 
-void TimerQueue::reset(const std::vector<Entry> &expired, Timestamp now) {}
+// 在loop线程中执行
+void TimerQueue::reset(const std::vector<Entry> &expired, Timestamp now) {
+  Timestamp next_expire;
+  for (const Entry &elem : expired) {
+    ActiveTimer timer(elem.second, elem.second->sequence());
+
+    // TODO: 这里的_canceling_timers什么作用？
+    // 这个已经到期的timer处理完了，并且对该timer执行了cancel了，那就意味着不需要在使用这个timer了，也不需要reset，再insert了
+    // 所以在timer到期的回调里，可以直接执行cancel
+    if (elem.second->repeat() && _canceling_timers.find(timer) == _canceling_timers.end()) {
+      elem.second->restart(now);
+      insert(elem.second);
+    } else {
+      delete elem.second;
+    }
+  }
+
+  if (!_timers.empty()) {
+    next_expire = _timers.begin()->second->expiration();
+  }
+
+  if (next_expire.valid()) {
+    reset_timerfd(_timerfd, next_expire);
+  }
+}

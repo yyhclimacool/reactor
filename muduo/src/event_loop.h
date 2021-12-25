@@ -6,14 +6,14 @@
 #include <mutex>
 #include <vector>
 
+#include "timer.h"
 #include "timestamp.h"
 
 namespace muduo {
 
 class Channel;
 class Poller;
-// class TimerId;
-// class TimerQueue;
+class TimerQueue;
 
 // 事件循环：one loop per thread 的实现
 class EventLoop {
@@ -30,10 +30,11 @@ public:
   void loop();
   void quit();
 
-  // TimerId RunAt(Timestamp time, std::function<void()> cb);
-  // TimerId RunAfter(double delay, std::function<void()> cb);
-  // TimerId RunEvery(double interval, std::function<void()> cb);
-  // void    Cancel(TimerId timerid);
+  // bellow functions are safe to call from other threads
+  TimerId run_at(Timestamp time, std::function<void()> cb);
+  TimerId run_after(double delay, std::function<void()> cb);
+  TimerId run_every(double interval, std::function<void()> cb);
+  void    cancel(TimerId timerid);
 
   // if assert failed, abort the program.
   void assert_in_loop_thread() const;
@@ -52,6 +53,7 @@ public:
   void update_channel(Channel *);
 
 private:
+  void call_pending_functors();
   // 一个EventLoop有一个Poller，当前只实现了epoll
   std::unique_ptr<Poller> _poller;
 
@@ -79,12 +81,12 @@ private:
 
   int                                _wakeupfd;
   Channel                           *_wakeup_channel;
-  std::mutex                         _mutex; // protects _pending_functors
+  mutable std::mutex                 _mutex; // protects _pending_functors
   bool                               _calling_pending_functors;
   std::vector<std::function<void()>> _pending_functors;
 
-  // // 处理定时器事件
-  // std::unique_ptr<TimerQueue> _timer_queue;
+  // 处理定时器事件
+  std::unique_ptr<TimerQueue> _timer_queue;
 };
 
 } // namespace muduo

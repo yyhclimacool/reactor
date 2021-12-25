@@ -33,12 +33,12 @@ EPollPoller::EPollPoller(EventLoop *loop)
 EPollPoller::~EPollPoller() { close(_epollfd); }
 
 Timestamp EPollPoller::poll(int timeout_ms, std::vector<Channel *> *active_channels) {
-  LOG(INFO) << "total fd num=" << _channels.size() << " in epoll[" << this << "]";
+  DLOG(INFO) << "total fd num=" << _channels.size() << " in epoll[" << this << "]";
   int  num_events = epoll_wait(_epollfd, _events.data(), static_cast<int>(_events.size()), timeout_ms);
   int  saved_errno = errno;
   auto now = Timestamp::now();
   if (num_events > 0) {
-    LOG(INFO) << "num_events=" << num_events << " happend in epoll[" << this << "]";
+    DLOG(INFO) << "num_events=" << num_events << " happend in epoll[" << this << "]";
     fill_active_channels(num_events, active_channels);
     if (static_cast<size_t>(num_events) == _events.size()) {
       _events.resize(_events.size() * 2);
@@ -74,7 +74,7 @@ void EPollPoller::fill_active_channels(int num_events, std::vector<Channel *> *a
 void EPollPoller::update_channel(Channel *ch) {
   assert_in_loop_thread();
   const int index = ch->index();
-  LOG(INFO) << "fd=" << ch->fd() << ", events=" << ch->events() << ", index=" << ch->index();
+  DLOG(INFO) << "fd=" << ch->fd() << ", events=" << ch->events() << ", index=" << ch->index();
   if (index == kNew || index == kDeleted) {
     int fd = ch->fd();
     // if it's a new channel.
@@ -145,7 +145,7 @@ void EPollPoller::update(int op, Channel *ch) {
   event.events = ch->events();
   event.data.ptr = ch;
   int fd = ch->fd();
-  LOG(INFO) << "epoll_ctl op=" << operation_to_string(op) << ", fd=" << fd << ", event=" << ch->events_to_string();
+  DLOG(INFO) << "epoll_ctl op=" << operation_to_string(op) << ", fd=" << fd << ", event=" << ch->events_to_string();
   if (epoll_ctl(_epollfd, op, fd, &event) < 0) {
     if (op == EPOLL_CTL_DEL) {
       LOG(WARNING) << "epoll_ctl_del for fd=" << fd << " failed.";

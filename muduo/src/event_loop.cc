@@ -30,7 +30,7 @@ EventLoop::EventLoop()
     , _quit(false)
     , _wakeupfd(create_eventfd())
     , _wakeup_channel(new Channel(this, _wakeupfd))
-/* , _timer_queue(new TimerQueue(this)) */ {
+    , _timer_queue(new TimerQueue(this)) {
   // 如果当前线程的EventLoop已经存在，严重错误，退出程序
   if (t_LoopInThisThread) {
     LOG(FATAL) << "another eventloop=" << t_LoopInThisThread << " exists in current thread=" << tid();
@@ -39,12 +39,12 @@ EventLoop::EventLoop()
   }
   _wakeup_channel->set_read_callback(std::bind(&EventLoop::handle_read, this));
   _wakeup_channel->enable_reading();
-  LOG(INFO) << "create an event_loop=" << this << " in thread=" << _threadid;
+  DLOG(INFO) << "create an event_loop=" << this << " in thread=" << _threadid;
 }
 
 // TODO: 可以跨线程调用吗？貌似也不行，因为不同的线程有不同的线程局部存储: t_LoopInThisThread
 EventLoop::~EventLoop() {
-  LOG(INFO) << "eventloop=" << this << " of thread=" << _threadid << " destructs in thread=" << tid();
+  DLOG(INFO) << "eventloop=" << this << " of thread=" << _threadid << " destructs in thread=" << tid();
   // 置空
   t_LoopInThisThread = nullptr;
 }
@@ -67,10 +67,11 @@ void EventLoop::loop() {
   assert(!_looping);
   assert_in_loop_thread();
   _looping = true;
-  LOG(INFO) << "event_loop=" << this << " start looping ...";
+  LOG(INFO) << "event_loop[" << this << "] start looping ...";
   while (!_quit) {
+    DLOG(INFO) << "event_loop[" << this << "] one round of loopping ...";
     _active_channels.clear();
-    _poll_return_ts = _poller->poll(1000 /*ms*/, &_active_channels);
+    _poll_return_ts = _poller->poll(10000 /*ms*/, &_active_channels);
     _event_handling = true;
     // TODO: sort channel by priority
     for (auto it = _active_channels.begin(); it != _active_channels.end(); ++it) {
@@ -79,8 +80,9 @@ void EventLoop::loop() {
     }
     _current_active_channel = nullptr;
     _event_handling = false;
+    call_pending_functors();
   }
-  LOG(INFO) << "event_loop=" << this << " stop looping.";
+  LOG(INFO) << "event_loop[" << this << "] stopped looping.";
   _looping = false;
 }
 
@@ -89,12 +91,27 @@ void EventLoop::quit() {
   _quit = true;
   if (!is_in_loop_thread()) {
     // TODO: wakeup event loop
-    // wakeup();
+    wakeup();
   }
-  LOG(INFO) << "set quit flag of event_loop=" << this << ", pid=" << getpid() << ", tid=" << tid()
-            << ", this loop's owner tid=" << _threadid;
+  DLOG(INFO) << "set quit flag of event_loop=" << this << ", pid=" << getpid() << ", tid=" << tid()
+             << ", this loop's owner tid=" << _threadid;
+  LOG(INFO) << "event_loop[" << this << "] asked to quit.";
 }
 
+void EventLoop::call_pending_functors() {
+  std::vector<std::function<void()>> functors;
+  _calling_pending_functors = true;
+  {
+    std::lock_guard<std::mutex> gd(_mutex);
+    functors.swap(_pending_functors);
+  }
+  for (const auto &func : functors) {
+    func();
+  }
+  _calling_pending_functors = false;
+}
+
+// TODO: 这些func会有多及时被调用？
 void EventLoop::run_in_loop(std::function<void()> func) {
   if (is_in_loop_thread()) {
     func();
@@ -109,6 +126,10 @@ void EventLoop::queue_in_loop(std::function<void()> func) {
     _pending_functors.push_back(std::move(func));
   }
   // TODO: What to do with _calling_pending_functors ?
+  // 为了让func被及时的调用
+  // 如果I/O线程阻塞在poll上，那么需要立刻唤醒
+  // 如果I/O线程已经处理完了epoll的事件，正在调用pending functors，为什么需要唤醒？唤醒如何起作用？
+  // 后一种情况下，func可能会被挂起很久！
   if (!is_in_loop_thread() || _calling_pending_functors) {
     wakeup();
   }
@@ -158,20 +179,18 @@ void EventLoop::update_channel(Channel *ch) {
   _poller->update_channel(ch);
 }
 
-// TimerId EventLoop::RunAt(Timestamp time, std::function<void()> cb) {
-//     return _timer_queue->AddTimer(time, 0.0, std::move(cb));
-// }
+TimerId EventLoop::run_at(Timestamp time, std::function<void()> cb) {
+  return _timer_queue->add_timer(time, 0.0, std::move(cb));
+}
 
-// TimerId EventLoop::RunAfter(double delay, std::function<void()> cb) {
-//     auto time = Timestamp::Now() + delay;
-//     return RunAt(time, cb);
-// }
+TimerId EventLoop::run_after(double delay, std::function<void()> cb) {
+  auto time = Timestamp::now() + delay;
+  return run_at(time, cb);
+}
 
-// TimerId EventLoop::RunEvery(double interval, std::function<void()> cb) {
-//     auto time = Timestamp::Now() + interval;
-//     return _timer_queue->AddTimer(time, interval, std::move(cb));
-// }
+TimerId EventLoop::run_every(double interval, std::function<void()> cb) {
+  auto time = Timestamp::now() + interval;
+  return _timer_queue->add_timer(time, interval, std::move(cb));
+}
 
-// void EventLoop::Cancel(TimerId timerid) {
-//     return _timer_queue->Cancel(timerid);
-// }
+void EventLoop::cancel(TimerId timerid) { return _timer_queue->cancel(timerid); }

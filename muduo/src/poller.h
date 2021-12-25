@@ -22,9 +22,9 @@ public:
   virtual void remove_channel(Channel *) = 0;
 
   static Poller *new_default_poller(EventLoop *loop);
-  void           assert_in_loop_thread() const;
 
 protected:
+  void assert_in_loop_thread() const;
   // fd to Channel pointer
   // TODO: think how to make sure its thread-safety ?
   // Answer: you can modify _channels only in loop thread, but by what means ?

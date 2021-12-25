@@ -27,6 +27,7 @@ public:
   explicit TimerQueue(EventLoop *loop);
   ~TimerQueue();
 
+  // must be thread safe, usually be called from other threads.
   TimerId add_timer(Timestamp when, double interval, std::function<void()> timer_cb);
   void    cancel(TimerId timerid);
 
@@ -42,12 +43,11 @@ private:
   void               reset(const std::vector<Entry> &expired, Timestamp now);
 
 private:
-  EventLoop *_loop;
-  const int  _timerfd;
-  Channel    _timerfd_channel;
-  TimerSet   _timers;
-
-  ActiveTimerSet    _active_timers;
+  EventLoop        *_loop;
+  const int         _timerfd;
+  Channel           _timerfd_channel;
+  TimerSet          _timers;        // timer list sorted by expiration
+  ActiveTimerSet    _active_timers; // for cancel()
   std::atomic<bool> _calling_expired_timers;
   ActiveTimerSet    _canceling_timers;
 };
