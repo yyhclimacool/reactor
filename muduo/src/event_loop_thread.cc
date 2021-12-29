@@ -32,6 +32,10 @@ void EventLoopThread::thread_func() {
     _loop = &loop;
     _cond.notify_one();
   }
+
+  // Q: 通常loop是一个无限循环，什么时候会退出loop？
+  // A: _loop指针会返回给调用者，因而调用者可以保存指针，并在合适的时候调用quit()退出loop
+  //    this对象析构的时候也会调用quit。
   loop.loop();
 
   // exiting ?
