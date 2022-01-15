@@ -15,6 +15,8 @@ void new_connection(int connfd, const InetAddress &addr) {
 }
 
 int main(int argc, char **argv) {
+  (void)argc;
+  (void)argv;
   LOG(INFO) << "main pid[" << getpid() << "].";
   InetAddress listenaddr(9981);
   EventLoop   loop;

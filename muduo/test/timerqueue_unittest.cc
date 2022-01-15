@@ -54,6 +54,8 @@ void test_thread() {
 }
 
 int main(int argc, char **argv) {
+  (void)argc;
+  (void)argv;
   // google::InitGoogleLogging(argv[ 0 ]);
   print_tid();
   sleep(1);
