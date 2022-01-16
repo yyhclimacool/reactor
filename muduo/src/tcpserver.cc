@@ -11,9 +11,9 @@ using namespace muduo;
 
 TcpServer::TcpServer(EventLoop *acceptor_loop, const InetAddress &listen_addr, const std::string &name)
     : _acceptor_loop(acceptor_loop)
+    , _acceptor(new Acceptor(acceptor_loop, listen_addr))
     , _ip_port(listen_addr.to_ip_port())
-    , _name(name)
-    , _acceptor(new Acceptor(acceptor_loop, listen_addr)) {
+    , _name(name) {
   _acceptor->set_new_connection_callback(
     std::bind(&TcpServer::new_connection, this, std::placeholders::_1, std::placeholders::_2));
 }
