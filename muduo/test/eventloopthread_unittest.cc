@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
   print();
   {
     // 运行构造函数，运行loop函数，然后析构函数进行quit
+    // 构造之后立马析构
     EventLoopThread loop_thread1;
   }
   LOG(INFO) << "================================================";

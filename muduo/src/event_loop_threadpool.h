@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace muduo {
+
 class EventLoop;
 class EventLoopThread;
 
@@ -35,4 +36,5 @@ private:
   std::vector<std::unique_ptr<EventLoopThread>> _threads;
   std::vector<EventLoop *>                      _loops;
 };
+
 } // namespace muduo

@@ -1,5 +1,7 @@
 #include "muduo/src/event_loop_threadpool.h"
 
+#include <glog/logging.h>
+
 #include "muduo/src/event_loop.h"
 #include "muduo/src/event_loop_thread.h"
 
@@ -24,8 +26,10 @@ void EventLoopThreadPool::start(const ThreadInitCallback &cb) {
     char buf[ _name.size() + 32 ];
     snprintf(buf, sizeof buf, "%s%d", _name.c_str(), i);
     _threads.emplace_back(new EventLoopThread(cb, buf));
+    // 逐个等待loop的创建
     _loops.push_back(_threads.back()->start_loop());
   }
+  DLOG(INFO) << "EventLoopThreadPool name[" << _name << "], started [" << _num_threads << "] threads";
 
   // TODO: 这一行什么作用？
   if (_num_threads == 0 && cb) {
